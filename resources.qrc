@@ -1,0 +1,26 @@
+<RCC>
+    <qresource prefix="/">
+        <file>assets/Characteristics.qml</file>
+        <file>assets/Device_page_main.qml</file>
+        <file>assets/main.qml</file>
+        <file>assets/Menu.qml</file>
+        <file>assets/Services.qml</file>
+        <file>assets/Header.qml</file>
+        <file>assets/Dialog.qml</file>
+        <file>assets/Label.qml</file>
+        <file>assets/busy_dark.png</file>
+        <file>assets/Command_menu.qml</file>
+        <file>images/MassiveTiming.png</file>
+        <file>assets/Command_List.qml</file>
+        <file>assets/PopupSettings.qml</file>
+        <file>images/battery/battery_horizontal_10percent.png</file>
+        <file>images/battery/battery_horizontal_20percent.png</file>
+        <file>images/battery/battery_horizontal_40percent.png</file>
+        <file>images/battery/battery_horizontal_60percent.png</file>
+        <file>images/battery/battery_horizontal_80percent.png</file>
+        <file>images/battery/battery_horizontal_full.png</file>
+        <file>images/battery/battery_horizontal_plugged_in.png</file>
+        <file>images/battery/battery-empty.png</file>
+        <file>assets/widgets/Device_status_bar.qml</file>
+    </qresource>
+</RCC>
