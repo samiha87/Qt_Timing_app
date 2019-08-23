@@ -101,7 +101,7 @@ public:
     void setRandomAddress(bool newValue);
 
 signals:
-    void mtMessageReceived(QString msg);
+    void mtMessageReceived(QByteArray msg);
 
 public slots:
     void startDeviceDiscovery(QString input);
@@ -150,6 +150,7 @@ private:
     QLowEnergyDescriptor *m_notificationDesc;
 
     void setUpdate(QString message);
+    void setDeviceVisuallyConnected(bool state);
     QBluetoothDeviceDiscoveryAgent *discoveryAgent;
     DeviceInfo currentDevice;
     QList<QObject*> devices;
@@ -169,7 +170,10 @@ private:
     bool enableMessageReading;
 
     QString mtMessage;
+    QByteArray rxMessage;
     QString searchParams;
+
+    bool deviceVisuallyConnected;
 };
 
 #endif // DEVICE_H

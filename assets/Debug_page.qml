@@ -177,7 +177,7 @@ Rectangle {
         }
     }
 
-    Command_menu {
+   Command_menu {
         id: btn_settings
         anchors.left: parent.left
         anchors.bottom: menu.top
@@ -197,7 +197,20 @@ Rectangle {
             // open settings menu
         }
     }
+    /*
+    Command_menu {
+            id: btn_history
+            anchors.left: parent.left
+            anchors.bottom: menu.top
+            menuWidth: parent.width/3
+            menuHeight: parent.height/7
+            menuText: "History"
 
+            onCommandButtonClick: {
+               pageLoader.source = "History.qml"
+            }
+        }
+    */
     Command_menu {
         id: btn_skip
         anchors.left: btn_settings.right
@@ -207,7 +220,7 @@ Rectangle {
         menuText: "Skip time"
 
         onCommandButtonClick: {
-            device.transmitData("h!2");
+            device.transmitData("Skip");
             // Enable upload
         }
     }
@@ -221,7 +234,8 @@ Rectangle {
         menuText: "Reset"
 
         onCommandButtonClick: {
-            device.transmitData("h!1");
+            // open confirmation window
+            device.transmitData("Reset");
         }
     }
 

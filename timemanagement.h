@@ -6,6 +6,7 @@
 
 #include "timeslot.h"
 #include "device_status.h"
+#include "memoryhandler.h"
 
 class TimeManagement : public QObject
 {
@@ -41,7 +42,9 @@ public:
     void addTime(QString input);
 
     void setTime(int slot, QString time);
-    void setTimeState(int slot, QString state);
+    void setRFID(int slot, QString key);
+    void setTimeFromMS(int slot, long milliSeconds);
+    void setTimeState(int slot,int identity, QString state);
     void setDeviceType(DeviceTypes types);
 
     bool getStartState();
@@ -50,7 +53,7 @@ public:
     bool getMasterState();
 
 public slots:
-    void parseMessage(QString msg);
+    void parseMessage(QByteArray msg);
 
 Q_SIGNALS:
      void timeSlotsUpdated();
@@ -61,6 +64,9 @@ private:
      QList<QObject*> timeSlotList;
      TimeSlot *timeSlot;
      DeviceStatus deviceStatus;
+     MemoryHandler mh;
+
+     QString convertMsToClockFormat(long mSeconds);
 
      bool startActive;
      bool splitActive;

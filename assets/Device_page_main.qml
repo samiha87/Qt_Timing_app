@@ -41,12 +41,14 @@
 
 import QtQuick 2.0
 import "widgets"
+
 Rectangle {
     id: devicePage
     width: 300
     height: 600
     property variant window;
     property bool popupSettingsShown: false;
+    property bool confirmPopupShown: false;
 
     Component.onCompleted: {
         if (device.controllerError) {
@@ -55,14 +57,15 @@ Rectangle {
         }
     }
 
+
     Header {
         id: header
         anchors.top: parent.top
-        headerText: "MT portal"
+        headerText: "SpeedUp"
     }
 
     Device_status_bar {
-        id:device_status
+        id: device_status
         anchors.top: header.bottom
         batteryLevel: timeManagement.battery
         deviceType: timeManagement.type
@@ -115,14 +118,27 @@ Rectangle {
                 }
             }
 
-            Label {
+            Text {
                 id: timeSlotTime
-                textContent: modelData.getTimeFromSlot
+                font.pointSize: 40
                 font.bold: modelData.isRunning
-                font.pointSize: (timeSlot.height * 0.2)
-                anchors.bottom: timeSlot.bottom
-                anchors.bottomMargin: 5
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: "#363636"
+                horizontalAlignment: Text.AlignHCenter
+                text: modelData.getTimeFromSlot
+            }
 
+            Text {
+                id: participantIdentity
+                font.pointSize: 10
+                font.bold: modelData.isRunning
+                anchors.left: timeSlotTime.right
+                anchors.leftMargin: 10
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 5
+                color: "#363636"
+                horizontalAlignment: Text.AlignHCenter
+                text: modelData.getParticipant
             }
         }
     }
@@ -134,47 +150,50 @@ Rectangle {
         anchors.bottom: menu.top
         menuWidth: parent.width/3
         menuHeight: parent.height/8
-        menuText: "Settings"
-
+        menuText: "Menu"
+        visible: true
         onCommandButtonClick: {
-            if(!popupSettingsShown) {
-                popupSettingsShown = true;
+           if(popupSettings.visible === true) {
+               popupSettings.visible = false
+           } else {
                 popupSettings.visible = true;
-            } else {
-                popupSettingsShown = false;
-                popupSettings.visible = false;
-            }
-
-            // open settings menu
+           }
         }
     }
 
     Command_menu {
         id: btn_skip
         z: 54
-        anchors.left: btn_settings.right
+        anchors.right: btn_reset.left
         anchors.bottom: menu.top
         menuWidth: parent.width/3
         menuHeight: (parent.height/8)
         menuText: "Skip time"
 
         onCommandButtonClick: {
-            device.transmitData("h!2");
-            // Enable upload
+            device.transmitData("Skip");
         }
     }
 
     Command_menu {
-        id: btn_alarm
+        id: btn_reset
         z: 55
-        anchors.left: btn_skip.right
+        //anchors.left: btn_skip.right
         anchors.bottom: menu.top
+        anchors.right: parent.right
         menuWidth: parent.width/3
         menuHeight: parent.height/8
         menuText: "Reset"
 
         onCommandButtonClick: {
-            device.transmitData("h!1");
+            if(!confirmPopupShown) {
+                confirmPopupShown = true;
+                confirmPopup.visible = true;
+            } else {
+                confirmPopupShown = false;
+                confirmPopup.visible = false;
+            }
+            //device.transmitData("h!1");
         }
     }
 
@@ -187,10 +206,12 @@ Rectangle {
         menuHeight: (parent.height / 8)
         onButtonClick: {
             device.update = "Search"
-            pageLoader.source = "" // Closes current page
             device.disconnectFromDevice();
+            pageLoader.source = "" // Closes current page
+
         }
     }
+
     PopupSettings {
         id: popupSettings
         width: btn_settings.width
@@ -199,5 +220,16 @@ Rectangle {
         anchors.right: btn_settings.right
         anchors.bottom: btn_settings.top
         visible: false
+    }
+
+    Confirmation_popup {
+        id: confirmPopup
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        visible: false
+        onClosePopup: {
+            confirmPopupShown = false;
+            confirmPopup.visible = false;
+        }
     }
 }

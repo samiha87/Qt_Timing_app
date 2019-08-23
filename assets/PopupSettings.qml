@@ -11,61 +11,31 @@ Rectangle {
     property bool masterActive: false
 
     Command_menu {
-        id: btn_setStart
+        id: btn_wifi
         anchors.top: container.top
         anchors.left: container.left
         menuWidth: container.width
         menuHeight: container.height/2
-        darken: timeManagement.getStartActive
-        menuText: "Start"
+        //darken: timeManagement.getStartActive
+        menuText: "Wi-Fi"
         onCommandButtonClick: {
-            device.setDeviceType("Start");
+             pageLoader.source = "WiFi_page.qml"
         }
+        visible: true
     }
 
     Command_menu {
-        id: btn_setSplit
-
-        anchors.top: btn_setStart.bottom
+        id: btn_configure
+        anchors.top: btn_wifi.bottom
         anchors.left: container.left
-        menuWidth: container.width
-        menuHeight: container.height/4
-        darken: timeManagement.getSplitActive
-        menuText: "Split"
-        onCommandButtonClick: {
-            device.setDeviceType("Split");
-        }
-        visible: false
-    }
-
-    Command_menu {
-        id: btn_setEnd
-        anchors.top: btn_setStart.bottom
-        anchors.left: container.left
-
         menuWidth: container.width
         menuHeight: container.height/2
-        menuText: "End"
-        darken: timeManagement.getEndActive
+        //darken: timeManagement.getStartActive
+        menuText: "Configurations"
         onCommandButtonClick: {
-            device.setDeviceType("End");
+            //device.setDeviceType("Start");
         }
-    }
-
-    Command_menu {
-        id: btn_setMaster
-
-        anchors.left: container.left
-        anchors.bottom: container.bottom
-
-        menuWidth: container.width
-        menuHeight: container.height/4
-        menuText: "Master"
-        darken: timeManagement.getMasterActive
-        onCommandButtonClick: {
-            device.setDeviceType("Master");
-        }
-        visible: false
+        visible: true
     }
 }
 

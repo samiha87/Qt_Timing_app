@@ -42,6 +42,9 @@ import QtQuick 2.0
 
 Text {
     property string textContent: ""
+    property alias labelWidth: labelText1.width
+
+    id: labelText1
     font.pointSize: 20
     anchors.horizontalCenter: parent.horizontalCenter
     color: "#363636"

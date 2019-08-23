@@ -47,14 +47,17 @@ Rectangle {
     height: 600
     property bool deviceState: device.state
     onDeviceStateChanged: {
-        if (!device.state)
+        if (!device.state) {
             info.visible = false;
+        }
     }
 
     Header {
         id: header
-        headerText: "    MT-device(s)"
+        logoVisibe: true
+        headerText: "Device(s) found"
         anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
     }
 
     Dialog {

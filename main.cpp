@@ -44,25 +44,49 @@
 #include <QGuiApplication>
 #include <QQuickView>
 #include <QObject>
-
 #include "device.h"
 #include "timemanagement.h"
+#include "wifihandler.h"
+
+#include <QtAndroidExtras/QAndroidJniEnvironment>
+#include <QtAndroidExtras/QtAndroidExtras>
+
+//#include "history.h"
+
 
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
-
     Device d;
     TimeManagement tm;
+    WiFiHandler wifi(&d);
+    //History history;
 
     tm.createTimeSlots(7);
 
-    QObject::connect(&d, SIGNAL(mtMessageReceived(QString)), &tm, SLOT(parseMessage(QString)));
+    QObject::connect(&d, SIGNAL(mtMessageReceived(QByteArray)), &tm, SLOT(parseMessage(QByteArray)));
+
+    // Remove screensaver
+    QAndroidJniObject activity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
+    if (activity.isValid()) {
+        QAndroidJniObject window = activity.callObjectMethod("getWindow", "()Landroid/view/Window;");
+        if (window.isValid()) {
+            const int FLAG_KEEP_SCREEN_ON = 128;
+            window.callMethod<void>("addFlags", "(I)V", FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
+    //Clear any possible pending exceptions.
+    QAndroidJniEnvironment env;
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
 
     QQuickView *view = new QQuickView;
     view->rootContext()->setContextProperty("device", &d);
     view->rootContext()->setContextProperty("timeManagement", &tm);
+   // view->rootContext()->setContextProperty("history", &history);
     view->setSource(QUrl("qrc:/assets/main.qml"));
     view->setResizeMode(QQuickView::SizeRootObjectToView);
     view->show();

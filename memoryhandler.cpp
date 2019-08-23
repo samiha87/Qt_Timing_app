@@ -63,3 +63,19 @@ QStringList MemoryHandler::readCSV(QString filename)
     file.close();   // Close file
     return wordList;
 }
+
+void MemoryHandler::insertTimeIdentity(int timeSlotId, int identity)
+{
+    timeIdentityMemory.insert(timeSlotId, identity);
+}
+
+bool MemoryHandler::searchIdentity(int identity)
+{
+    if(timeIdentityMemory.contains(identity)) return true;
+    return false;
+}
+
+void MemoryHandler::clearTimeIdentity()
+{
+    timeIdentityMemory.clear();
+}

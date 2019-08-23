@@ -14,9 +14,15 @@ public:
     void appendCSV(QString txt, QString filename);
     QStringList readCSV(QString filename);
 
+    void insertTimeIdentity(int timeSlotId, int identity);
+    bool searchIdentity(int identity);
+    void clearTimeIdentity();
+
 signals:
 
 public slots:
+private:
+    QList<int> timeIdentityMemory;
 
 };
 

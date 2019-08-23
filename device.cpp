@@ -71,6 +71,8 @@ Device::Device():
     transmitPointer = 0;
     searchParams = null;
     setUpdate("Search");
+
+    deviceVisuallyConnected = false;
 }
 
 Device::~Device()
@@ -87,21 +89,19 @@ Device::~Device()
 
 void Device::startDeviceDiscovery(QString input)
 {
+    qDebug() << "Device::startDeviceDiscovery()";
     qDeleteAll(devices);
     qDeleteAll(m_services);
     qDeleteAll(m_characteristics);
     devices.clear();
     m_services.clear();
     m_characteristics.clear();
-
+    discoveryAgent->stop();
     emit devicesUpdated();
     searchParams = input;
-    if(input == "one") {
-        setUpdate("Scanning for MT device");
-        quickSearchTimer.start(3000);
-    } else if (input == "all") {
-        setUpdate("Scanning for MT devices");
-    }
+
+    setUpdate("Scanning for device");
+   quickSearchTimer.start(10000);
     discoveryAgent->start();
 
     if (discoveryAgent->isActive()) {
@@ -114,8 +114,15 @@ void Device::addDevice(const QBluetoothDeviceInfo &info)
 {
     if (info.coreConfigurations() & QBluetoothDeviceInfo::LowEnergyCoreConfiguration) {
         DeviceInfo *d = new DeviceInfo(info);
-        if(d->getName().startsWith("MT") || d->getName().startsWith("HMSoft")) {
+        if(d->getName().startsWith("MT") || d->getName().startsWith("HMSoft") || d->getName().startsWith("BT05")) {
             setUpdate("Found device: " + d->getName());
+            // Check that we don't already contain this
+            for(int i = 0; i < devices.count(); ++i) {
+                if(qobject_cast<DeviceInfo *>(devices.value(i))->getAddress() == d->getAddress()){
+                    return;
+                }
+            }
+
             devices.append(d);
             emit devicesUpdated();
         }
@@ -127,11 +134,12 @@ void Device::deviceScanFinished()
     emit devicesUpdated();
     quickSearchTimer.stop();
     m_deviceScanState = false;
+    discoveryAgent->stop();
     emit qstateChanged();
     if (devices.isEmpty())
-        setUpdate("No MT devices found...");
+        setUpdate("No devices found...");
     else
-        setUpdate("Finished");
+        setUpdate("Search");
 }
 
 QVariant Device::getDevices()
@@ -158,7 +166,7 @@ QString Device::getUpdate()
 void Device::scanServices(const QString &address)
 {
     // We need the current device for service discovery.
-
+    qDebug() << "Device::scanServices(): begin";
     for (int i = 0; i < devices.size(); i++) {
         if (((DeviceInfo*)devices.at(i))->getAddress() == address )
             currentDevice.setDevice(((DeviceInfo*)devices.at(i))->getDevice());
@@ -176,7 +184,7 @@ void Device::scanServices(const QString &address)
     m_services.clear();
     emit servicesUpdated();
 
-    setUpdate("Back\n(Connecting to MT...)");
+
     //if(controller == 0) return;
 
     if (controller && m_previousAddress != currentDevice.getAddress()) {
@@ -184,8 +192,9 @@ void Device::scanServices(const QString &address)
         delete controller;
         controller = 0;
     }
-
+    setUpdate("Back\n(Connecting)");
     if (!controller) {
+
         controller = new QLowEnergyController(currentDevice.getDevice());
         connect(controller, SIGNAL(connected()),
                 this, SLOT(deviceConnected()));
@@ -197,6 +206,7 @@ void Device::scanServices(const QString &address)
                 this, SLOT(addLowEnergyService(QBluetoothUuid)));
         connect(controller, SIGNAL(discoveryFinished()),
                 this, SLOT(serviceScanDone()));
+    } else {
     }
 
     if (isRandomAddress())
@@ -205,22 +215,31 @@ void Device::scanServices(const QString &address)
         controller->setRemoteAddressType(QLowEnergyController::PublicAddress);
     controller->connectToDevice();
     m_previousAddress = currentDevice.getAddress();
+    qDebug() << "Device::scanServices(): end";
 }
 
 void Device::addLowEnergyService(const QBluetoothUuid &serviceUuid)
 {
+    qDebug() << "Device::addLowEnergyService(): Begin";
     QLowEnergyService *service = controller->createServiceObject(serviceUuid);
     if (!service) {
         qWarning() << "Cannot create service for uuid";
         return;
     }
     ServiceInfo *serv = new ServiceInfo(service);
+    qDebug() << "Adding new ble service: "<< serv->getUuid();
+    for(int i = 0; i < m_services.count(); ++i) {
+        if(qobject_cast<ServiceInfo *>(m_services.value(i))->getUuid() == serv->getUuid()) return;
+    }
+
     m_services.append(serv);
     if(serv->isTransfer()) {
+
         // Search characteristics and connect
         connectToService(serv->getUuid());
     }
     emit servicesUpdated();
+    qDebug() << "Device::addLowEnergyService(): Stop";
 }
 
 void Device::serviceScanDone()
@@ -264,6 +283,7 @@ void Device::connectToService(const QString &uuid)
         CharacteristicInfo *cInfo = new CharacteristicInfo(ch);
         m_characteristics.append(cInfo);
     }
+    setUpdate("Back\n(Connected)");
 
     QTimer::singleShot(0, this, SIGNAL(characteristicsUpdated()));
 }
@@ -290,7 +310,7 @@ void Device::setUpdate(QString message)
 void Device::disconnectFromMtGate()
 {
     //transmitData("h!d");
-    QTimer::singleShot(300, this, SLOT(disconnectFromDevice()));
+    QTimer::singleShot(100, this, SLOT(disconnectFromDevice()));
 }
 
 void Device::disconnectFromDevice()
@@ -302,22 +322,30 @@ void Device::disconnectFromDevice()
     // Disable communication from MT system
 
         //disabled notifications -> assume disconnect intent
+    qDebug() << "Device::disconnectFromDevice()";
+
     if(transmitService != 0) {
-        delete transmitService;
         transmitService = 0;
         transmitPointer = 0;
     }
 
-    if (controller->state() != QLowEnergyController::UnconnectedState)
+    if (controller->state() != QLowEnergyController::UnconnectedState){
         controller->disconnectFromDevice();
-    else
+        setDeviceVisuallyConnected(false);
+
+        disconnect(controller, SIGNAL(disconnected()),
+                             this, SLOT(deviceDisconnected()));
+    } else
         deviceDisconnected();
 }
 
 void Device::deviceDisconnected()
 {
-    qWarning() << "Disconnect from device";
+    qWarning() << "Device::deviceDisconnected(): Disconnect from device";
+    setDeviceVisuallyConnected(false);
+    setUpdate("!Disconnected from device\n\rwalk closer to timer");
     emit disconnected();
+    emit qstateChanged();
 }
 
 
@@ -349,13 +377,13 @@ void Device::serviceDetailsDiscovered(QLowEnergyService::ServiceState newState)
             qDebug() << service->serviceUuid();
             if(service->serviceUuid().toString().contains("0000ffe0") ) {
                 if(transmitService != 0) {
-                    delete transmitService;
+                    //delete transmitService;
                     transmitService = 0;
                     transmitPointer = 0;
                 }
                 transmitService = service;
                 transmitPointer = i;
-
+                setDeviceVisuallyConnected(false);
                 // enable notifications, required for two way communication
 
                 const QLowEnergyCharacteristic hrChar = transmitService->characteristics().at(transmitPointer);
@@ -419,20 +447,7 @@ void Device::setRandomAddress(bool newValue)
     emit randomAddressChanged();
 }
 
-void Device::transmitData(QString cmd)
-{
-    if(transmitService == 0) {
-        qDebug() << "transmitService not found";
-        return;
-    }
 
-    QByteArray msg;
-    msg.append('#');    // Start byte
-    msg.append('b');    // Bluetooth message
-    msg.append(cmd.toLocal8Bit());  //
-    msg.append('*');    // End byte
-    transmitService->writeCharacteristic(transmitService->characteristics().at(transmitPointer), msg, QLowEnergyService::WriteWithoutResponse);
-}
 
 void Device::readData()
 {
@@ -474,52 +489,58 @@ void Device::serialStateChanged(QLowEnergyService::ServiceState s)
     }
 }
 
+void Device::setDeviceVisuallyConnected(bool state)
+{
+    if(!deviceVisuallyConnected && state == true) {
+       setUpdate("Back\n(Connected)");
+       qDebug() << "Device::setDeviceVisuallyConnected(): connected";
+    }
+    deviceVisuallyConnected = state;
+}
+
 void Device::serialReadValue(const QLowEnergyCharacteristic &c,
                                      const QByteArray &value)
 {
     // ignore any other characteristic change -> shouldn't really happen though
-   // qDebug() << "Serial read value: " << value;
+    qDebug() << "Device::Serial read value: " << value;
     if (c.uuid().toString().contains("0000ffe0"))
         return;
-
     //const char *data = value.constData();
-    QByteArray startByte = "#";
-    QByteArray endByte = "*";
+    QByteArray startByte = "##";
+    QByteArray endByte = "**";
 
     if(value.contains(startByte) && value.contains(endByte)) {
-       // qDebug() << "Device::serialReadValue, whole message";
-        mtMessage.clear();
+        rxMessage.clear();
         QByteArray temp;
         temp = value;
-        int start = temp.indexOf(startByte);
+        int start = temp.indexOf(startByte) + 1;
         int end = temp.indexOf(endByte);
         temp = temp.mid( (start + 1), (end ));
-        mtMessage.append(temp);
-        emit mtMessageReceived(mtMessage);
-        //qDebug() << "Device::serialReadValue(): Message " << mtMessage;
+        rxMessage.append(temp);
+       // qDebug() << "Device::serialReadValue, whole message in bytes: " << rxMessage;
+        emit mtMessageReceived(rxMessage);
+        setDeviceVisuallyConnected(true);
         return;
-
     } else if(value.contains(startByte) && !enableMessageReading) {
-        mtMessage.clear();
+        rxMessage.clear();
         QByteArray temp;
         temp = value;
-        int start = temp.indexOf(startByte);
+        int start = temp.indexOf(startByte) + 1;
         temp.remove(0, (start + 1) );
-        mtMessage.append(temp);
-        //qDebug() << "Device::serialReadValue, start byte";
+        rxMessage.append(temp);
         enableMessageReading = true;
     } else if(enableMessageReading && value.contains(endByte)) {
-        //qDebug() << "Device::serialReadValue, end byte";
         enableMessageReading = false;   // Disable message reading
         QByteArray temp;
         temp = value;
         int end = temp.indexOf(endByte);
         temp = temp.mid(0, (end));
-        mtMessage.append(temp);
-        emit mtMessageReceived(mtMessage);
-        //qDebug() << "Device::serialReadValue(): Message " << mtMessage;
+        rxMessage.append(temp);
+        emit mtMessageReceived(rxMessage);
+        setDeviceVisuallyConnected(true);
+       // qDebug() << "Device::serialReadValue, Message in bytes: " << rxMessage;
     } else if(enableMessageReading){
-        mtMessage.append(value);
+        rxMessage.append(value);
     }
 }
 
@@ -573,4 +594,31 @@ QString Device::getDeviceType()
     return "Unknown";
 }
 
+/*
+void Device::requestWifiScan()
+{
+    QByteArray toSend = {};
+    transmitData("S!");
+}
+*/
+void Device::transmitData(QString cmd)
+{
+    if(transmitService == 0) {
+        qDebug() << "transmitService not found";
+        return;
+    }
+    QByteArray msg;
+    msg.append('#');    // Start byte
+    msg.append('b');    // Bluetooth message
+    if(cmd.contains("Skip")) {
+        msg.append('h'); msg.append(0x10); msg.append(0x19);
+    }
+    if(cmd.contains("Reset")) {
+        msg.append('h'); msg.append(0x10); msg.append(0x18);
+    }
 
+    //msg.append(cmd.toLocal8Bit());  //
+    msg.append('*');    // End byte
+    transmitService->writeCharacteristic(transmitService->characteristics().at(transmitPointer), msg, QLowEnergyService::WriteWithoutResponse);
+    qDebug() << "Device::transmitData() " + msg;
+}

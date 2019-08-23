@@ -21,6 +21,10 @@
         <file>images/battery/battery_horizontal_full.png</file>
         <file>images/battery/battery_horizontal_plugged_in.png</file>
         <file>images/battery/battery-empty.png</file>
+        <file>assets/History.qml</file>
+        <file>assets/Confirmation_popup.qml</file>
         <file>assets/widgets/Device_status_bar.qml</file>
+        <file>assets/widgets/TimeSlot.qml</file>
+        <file>assets/WiFi_page.qml</file>
     </qresource>
 </RCC>

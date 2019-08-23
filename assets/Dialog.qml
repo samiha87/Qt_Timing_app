@@ -66,7 +66,6 @@ Rectangle {
 
     Image {
         id: background
-
         width:20
         height:20
         anchors.top: dialogTextId.bottom
